@@ -4,6 +4,7 @@
 #include "bias_add.h"
 #include "concat.h"
 #include "conv1d.h"
+#include "conv2d.h"
 #include "cos.h"
 #include "gather.h"
 #include "gelu.h"

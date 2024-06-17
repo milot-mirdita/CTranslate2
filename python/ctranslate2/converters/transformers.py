@@ -97,12 +97,12 @@ class TransformersConverter(Converter):
 
     def _load(self):
         with torch.no_grad():
-            config = transformers.AutoConfig.from_pretrained(
+            config = transformers.T5EncoderModel.from_pretrained(
                 self._model_name_or_path, trust_remote_code=self._trust_remote_code
             )
 
             config_name = config.__class__.__name__
-            loader = _MODEL_LOADERS.get(config_name)
+            loader = _MODEL_LOADERS.get("T5EncoderConfig")
 
             if loader is None:
                 raise ValueError(
@@ -112,7 +112,7 @@ class TransformersConverter(Converter):
                 )
 
             model_class = getattr(transformers, loader.architecture_name)
-            tokenizer_class = transformers.AutoTokenizer
+            tokenizer_class = transformers.T5Tokenizer
 
             kwargs = {
                 "torch_dtype": (
@@ -1140,6 +1140,36 @@ class T5Loader(ModelLoader):
     def set_layer_norm(self, spec, layer_norm):
         spec.gamma = layer_norm.weight
 
+@register_loader("T5EncoderConfig")
+class T5EncoderLoader(T5Loader):
+    @property
+    def architecture_name(self):
+        return "T5EncoderModel"
+
+    def get_model_spec(self, model):
+        encoder_spec = transformer_spec.TransformerEncoderSpec(
+            model.config.num_layers,
+            model.config.num_heads,
+            pre_norm=True,
+            activation=_SUPPORTED_ACTIVATIONS[model.config.dense_act_fn],
+            ffn_glu=model.config.is_gated_act,
+            relative_attention_bias=True,
+            rms_norm=True,
+        )
+        spec = transformer_spec.TransformerEncoderModelSpec(
+            encoder_spec,
+        )
+
+        self.set_stack(spec.encoder, model.encoder)
+
+        return spec
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.pad_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
 
 @register_loader("MT5Config")
 class MT5Loader(T5Loader):

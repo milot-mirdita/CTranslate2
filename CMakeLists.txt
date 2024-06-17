@@ -145,6 +145,8 @@ set(SOURCES
   src/ops/concat_split_slide_cpu.cc
   src/ops/conv1d.cc
   src/ops/conv1d_cpu.cc
+  src/ops/conv2d.cc
+  src/ops/conv2d_cpu.cc
   src/ops/cos.cc
   src/ops/dequantize.cc
   src/ops/dequantize_cpu.cc

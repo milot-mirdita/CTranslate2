@@ -116,6 +116,15 @@ void benchmark_conv1d(Device device) {
   BENCHMARK(conv_op(x, weight, bias, y), 100);
 }
 
+void benchmark_conv2d(Device device) {
+  StorageView x({1, 768, 64, 64}, DataType::FLOAT32, device);
+  StorageView weight({768, 768, 3, 3}, DataType::FLOAT32, device);
+  StorageView bias({768}, DataType::FLOAT32, device);
+  StorageView y(device);
+  const ops::Conv2D conv_op{2, 2, 1, 1};
+  BENCHMARK(conv_op(x, weight, bias, y), 100);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device [dtype]" << std::endl;
@@ -153,6 +162,8 @@ int main(int argc, char* argv[]) {
     benchmark_dequantize(device);
   else if (op == "conv1d")
     benchmark_conv1d(device);
+  else if (op == "conv2d")
+    benchmark_conv2d(device);
 
   return 0;
 }
