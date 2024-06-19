@@ -214,15 +214,11 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
   }
   auto cnnDtype = ctranslate2::DataType::FLOAT32;
-  ctranslate2::StorageView conv0(weights[0].shape, cnnDtype, device);
-  conv0.view(weights[0].values.data(), weights[0].shape);
-  ctranslate2::StorageView bias0(weights[1].shape, cnnDtype, device);
-  bias0.view(weights[1].values.data(), weights[1].shape);
+  ctranslate2::StorageView conv0(weights[0].shape, weights[0].values, device);
+  ctranslate2::StorageView bias0(ctranslate2::Shape{weights[1].shape[0], 1, 1}, weights[1].values, device);
 
-  ctranslate2::StorageView conv1(weights[2].shape, cnnDtype, device);
-  conv1.view(weights[2].values.data(), weights[2].shape);
-  ctranslate2::StorageView bias1(weights[3].shape, cnnDtype, device);
-  bias1.view(weights[3].values.data(), weights[3].shape);
+  ctranslate2::StorageView conv1(weights[2].shape, weights[2].values, device);
+  ctranslate2::StorageView bias1(ctranslate2::Shape{weights[3].shape[0], 1, 1}, weights[3].values, device);
 
   ctranslate2::ReplicaPoolConfig pool_config;
   pool_config.num_threads_per_replica = intra_threads;

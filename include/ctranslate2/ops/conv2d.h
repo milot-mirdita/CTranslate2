@@ -45,6 +45,9 @@ namespace ctranslate2 {
                              const StorageView* qscale) const;
 
       void im2col_transposed(const StorageView& input, StorageView& output, dim_t kernel_height, dim_t kernel_width) const;
+#ifdef CT2_WITH_CUDA
+      void im2col_transposed_gpu(const StorageView& input, StorageView& output, dim_t kernel_height, dim_t kernel_width) const;
+#endif
     };
 
   }

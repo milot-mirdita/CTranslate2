@@ -8,30 +8,6 @@
 namespace ctranslate2 {
   namespace ops {
 
-    // Conv2D::Conv2D(dim_t stride_h, dim_t stride_w, dim_t padding_h, dim_t padding_w, dim_t dilation)
-    //   : _stride_h(stride_h)
-    //   , _stride_w(stride_w)
-    //   , _padding_h(padding_h)
-    //   , _padding_w(padding_w)
-    //   , _dilation(dilation)
-    // {
-    // }
-
-    // void Conv2D::operator()(const StorageView& input,
-    //                         const StorageView& weight,
-    //                         const StorageView& bias,
-    //                         StorageView& output,
-    //                         const StorageView* qscale) const {
-    //   operator()(input, weight, &bias, output, qscale);
-    // }
-
-    // void Conv2D::operator()(const StorageView& input,
-    //                         const StorageView& weight,
-    //                         StorageView& output,
-    //                         const StorageView* qscale) const {
-    //   operator()(input, weight, nullptr, output, qscale);
-    // }
-
     template<>
     void
     Conv2D::compute<Device::CPU, float>(const StorageView &input, const StorageView &weight, const StorageView *bias,
