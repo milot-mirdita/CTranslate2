@@ -123,6 +123,7 @@ set(SOURCES
   src/layers/flash_attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
+  src/layers/prostt5cnn.cc
   src/layers/transformer.cc
   src/layers/wav2vec2.cc
   src/layers/whisper.cc

@@ -17,6 +17,7 @@
 #include <ctranslate2/encoder.h>
 // #include <ctranslate2/utils.h>
 // #include <ctranslate2/profiler.h>
+#include <ctranslate2/layers/prostt5cnn.h>
 
 struct CnnWeights {
   std::vector<ctranslate2::dim_t> shape;
@@ -256,49 +257,54 @@ int main(int argc, char* argv[]) {
   auto start = std::chrono::high_resolution_clock::now();
   auto bla = enc.forward_batch_async(input);
   auto ys = bla.get().last_hidden_state;
-  // std::cout << "hidden:" << ys << std::endl;
+  // std::cout << "hidden:" << ys.to(ctranslate2::Device::CPU) << std::endl;
 
-  const ctranslate2::DataType dtype = ys.dtype();
-  const ctranslate2::dim_t batch_size = ys.dim(0);
-  const ctranslate2::dim_t seq_len = ys.dim(1);
-  const ctranslate2::dim_t hidden_dim = ys.dim(2);
+  ctranslate2::layers::ProstT5CNN prost_t5_cnn(conv0, bias0, conv1, bias1);
 
-  // Use ops::Slide to slice the tensor along the third dimension (axis = 2) and remove the first element
-  ctranslate2::ops::Slide slide_op(1, 1, seq_len - 2, /* no_copy= */ false);
-  ctranslate2::StorageView sliced_ys(device, dtype);
-  slide_op(ys, sliced_ys);
-  // std::cout << "slide:" << sliced_ys << std::endl;
+  // const ctranslate2::DataType dtype = ys.dtype();
+  // const ctranslate2::dim_t batch_size = ys.dim(0);
+  // const ctranslate2::dim_t seq_len = ys.dim(1);
+  // const ctranslate2::dim_t hidden_dim = ys.dim(2);
 
-  ctranslate2::StorageView pad_right({1, 1, hidden_dim}, dtype, device);
-  pad_right.zero();
+  // // Use ops::Slide to slice the tensor along the third dimension (axis = 2) and remove the first element
+  // ctranslate2::ops::Slide slide_op(1, 1, seq_len - 2, /* no_copy= */ false);
+  // ctranslate2::StorageView sliced_ys(device, dtype);
+  // slide_op(ys, sliced_ys);
+  // // std::cout << "slide:" << sliced_ys.to(ctranslate2::Device::CPU) << std::endl;
 
-  ctranslate2::ops::Concat cat_op(1);
-  ctranslate2::StorageView padded(device, dtype);
-  cat_op({&sliced_ys, &pad_right}, padded);
-  // std::cout << "padded:" << padded << std::endl;
+  // ctranslate2::StorageView pad_right({1, 1, hidden_dim}, dtype, device);
+  // pad_right.zero();
 
-  ctranslate2::ops::Transpose transpose_op(std::vector<ctranslate2::dim_t>{{0, 2, 1}});
-  ctranslate2::StorageView transposed(device, dtype);
-  transpose_op(padded, transposed);
-  transposed.expand_dims(3);
-  // std::cout << "transposed:" << transposed << std::endl;
+  // ctranslate2::ops::Concat cat_op(1);
+  // ctranslate2::StorageView padded(device, dtype);
+  // cat_op({&sliced_ys, &pad_right}, padded);
+  // // std::cout << "padded:" << padded.to(ctranslate2::Device::CPU) << std::endl;
 
-  ctranslate2::StorageView conv0_out(device, cnnDtype);
-  ctranslate2::ops::Conv2D conv_op(1, 1, 3, 0, 1);
-  conv_op(transposed, conv0, bias0, conv0_out, NULL);
-  // std::cout << "conv0: " << conv0 << std::endl;
-  // std::cout << "conv0_out: " << conv0_out << std::endl;
+  // ctranslate2::ops::Transpose transpose_op(std::vector<ctranslate2::dim_t>{{0, 2, 1}});
+  // ctranslate2::StorageView transposed(device, dtype);
+  // transpose_op(padded, transposed);
+  // transposed.expand_dims(3);
+  // // std::cout << "transposed:" << transposed.to(ctranslate2::Device::CPU) << std::endl;
 
-  ctranslate2::StorageView relu0_out(device, cnnDtype);
-  ctranslate2::ops::ReLU relu_op;
-  relu_op(conv0_out, relu0_out);
-  // std::cout << "relu0_out: " << relu0_out << std::endl;
+  // ctranslate2::StorageView conv0_out(device, cnnDtype);
+  // ctranslate2::ops::Conv2D conv_op(1, 1, 3, 0, 1);
+  // conv_op(transposed, conv0, bias0, conv0_out, NULL);
+  // // std::cout << "conv0: " << conv0 << std::endl;
+  // // std::cout << "conv0_out: " << conv0_out.to(ctranslate2::Device::CPU) << std::endl;
 
-  conv_op(relu0_out, conv1, bias1, conv0_out, NULL);
-  conv0_out.squeeze(-1);
-  // std::cout << "conv1_out: " << conv0_out << std::endl;
+  // ctranslate2::StorageView relu0_out(device, cnnDtype);
+  // ctranslate2::ops::ReLU relu_op;
+  // relu_op(conv0_out, relu0_out);
+  // // std::cout << "relu0_out: " << relu0_out << std::endl;
 
-  std::vector<std::vector<uint8_t>> argmax_results = compute_argmax_per_batch(conv0_out);
+  // conv_op(relu0_out, conv1, bias1, conv0_out, NULL);
+  // conv0_out.squeeze(-1);
+  // // std::cout << "conv1_out: " << conv0_out << std::endl;
+
+  ctranslate2::StorageView conv_out(device, cnnDtype);
+  prost_t5_cnn(ys, conv_out);
+
+  std::vector<std::vector<uint8_t>> argmax_results = compute_argmax_per_batch(conv_out);
   for (const auto& batch : argmax_results) {
     std::string pred;
     for (const auto& index : batch) {
