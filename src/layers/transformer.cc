@@ -61,15 +61,25 @@ namespace ctranslate2 {
                                                      const bool pre_norm,
                                                      const ops::ActivationType activation_type,
                                                      const bool use_flash_attention)
-      : _self_attention(!use_flash_attention ? std::unique_ptr<AttentionLayer>(new MultiHeadAttention(model,
+      : _self_attention(
+#ifdef CT2_WITH_FLASHATTENTION
+        !use_flash_attention ?
+#endif
+          std::unique_ptr<AttentionLayer>(new MultiHeadAttention(model,
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
-                        pre_norm)) : std::unique_ptr<AttentionLayer>(new FlashMultiHeadAttention(model,
+            pre_norm
+          ))
+#ifdef CT2_WITH_FLASHATTENTION
+        :
+          std::unique_ptr<AttentionLayer>(new FlashMultiHeadAttention(model,
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
-                        pre_norm)))
+            pre_norm))
+#endif
+          )
       , _ff(model, scope + "/ffn", pre_norm, activation_type) {
     }
 
@@ -103,19 +113,30 @@ namespace ctranslate2 {
                                                      const ops::ActivationType activation_type,
                                                      const bool use_flash_attention,
                                                      Alibi* alibi)
-      : _self_attention(!use_flash_attention ? std::unique_ptr<AttentionLayer>(new MultiHeadAttention(model,
+      : _self_attention(
+#ifdef CT2_WITH_FLASHATTENTION
+        !use_flash_attention ?
+#endif
+          std::unique_ptr<AttentionLayer>(new MultiHeadAttention(model,
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
                         pre_norm,
                         /*is_decoder=*/true,
-                        alibi)) : std::unique_ptr<AttentionLayer>(new FlashMultiHeadAttention(model,
+            alibi)
+          )
+#ifdef CT2_WITH_FLASHATTENTION
+        :
+          std::unique_ptr<AttentionLayer>(new FlashMultiHeadAttention(model,
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
                         pre_norm,
                         /*is_decoder=*/true,
-                        alibi)))
+            alibi)
+          )
+#endif
+        )
       , _shared_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/shared_layer_norm"))
       , _input_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/input_layer_norm"))
       , _post_attention_layer_norm(build_optional_layer<LayerNorm>(

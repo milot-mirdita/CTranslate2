@@ -14,6 +14,7 @@ option(WITH_OPENBLAS "Compile with OpenBLAS backend" OFF)
 option(WITH_RUY "Compile with Ruy backend" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(WITH_CUDNN "Compile with cuDNN backend" OFF)
+option(WITH_FLASHATTENTION "Compile with flash-attention" ON)
 option(CUDA_DYNAMIC_LOADING "Dynamically load CUDA libraries at runtime" OFF)
 option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
@@ -99,6 +100,12 @@ set(PRIVATE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
   )
+
+set(FLASH_ATTENTION_SOURCES
+  src/layers/flash_attention.cc
+  src/ops/flash_attention.cc
+  src/ops/flash_attention_cpu.cc
+  )
 set(SOURCES
   src/allocator.cc
   src/batch_reader.cc
@@ -120,7 +127,6 @@ set(SOURCES
   src/generator.cc
   src/layers/attention_layer.cc
   src/layers/attention.cc
-  src/layers/flash_attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
   src/layers/prostt5cnn.cc
@@ -151,8 +157,6 @@ set(SOURCES
   src/ops/cos.cc
   src/ops/dequantize.cc
   src/ops/dequantize_cpu.cc
-  src/ops/flash_attention.cc
-  src/ops/flash_attention_cpu.cc
   src/ops/gather.cc
   src/ops/gather_cpu.cc
   src/ops/gelu.cc
@@ -207,6 +211,10 @@ set(SOURCES
   src/vocabulary.cc
   src/vocabulary_map.cc
 )
+if(WITH_FLASHATTENTION)
+  list(APPEND SOURCES ${FLASH_ATTENTION_SOURCES})
+endif()
+
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
   spdlog::spdlog_header_only
@@ -480,13 +488,6 @@ if (WITH_CUDA)
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
   set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 
-  # flags for flash attention
-  list(APPEND CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
-  list(APPEND CUDA_NVCC_FLAGS "--expt-extended-lambda")
-
-  message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
-  message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
-
   # We should ensure that the Thrust include directories appear before
   # -I/usr/local/cuda/include for both GCC and NVCC, so that the headers
   # are coming from the submodule and not the system.
@@ -494,14 +495,26 @@ if (WITH_CUDA)
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust/dependencies/cub
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust
     )
+  add_definitions(-DTHRUST_IGNORE_CUB_VERSION_CHECK=1)
+
   cuda_include_directories(${THRUST_INCLUDE_DIRS})
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${THRUST_INCLUDE_DIRS})
+
+  # flags for flash attention
+  if(WITH_FLASHATTENTION)
+    list(APPEND CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
+    list(APPEND CUDA_NVCC_FLAGS "--expt-extended-lambda")
 
   set(CUTLASS_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cutlass/include
   )
   cuda_include_directories(${CUTLASS_INCLUDE_DIRS})
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUTLASS_INCLUDE_DIRS})
+    add_definitions(-DCT2_WITH_FLASHATTENTION)
+  endif()
+
+  message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
+  message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
   if(WITH_CUDNN)
     # Find cuDNN includes.
@@ -541,32 +554,9 @@ if (WITH_CUDA)
     list(APPEND LIBRARIES ${CUDA_CUBLAS_LIBRARIES})
   endif()
   set(CUDA_LINK_LIBRARIES_KEYWORD PRIVATE)
-  cuda_add_library(${PROJECT_NAME}
-    ${SOURCES}
-    src/cuda/allocator.cc
-    src/cuda/primitives.cu
-    src/cuda/random.cu
-    src/cuda/utils.cc
-    src/ops/alibi_add_gpu.cu
-    src/ops/bias_add_gpu.cu
-    src/ops/concat_split_slide_gpu.cu
-    src/ops/conv1d_gpu.cu
-    src/ops/conv2d_gpu.cu
-    src/ops/dequantize_gpu.cu
+
+  set(FLASH_ATTENTION_KERNEL_SOURCES
     src/ops/flash_attention_gpu.cu
-    src/ops/gather_gpu.cu
-    src/ops/gumbel_max_gpu.cu
-    src/ops/layer_norm_gpu.cu
-    src/ops/mean_gpu.cu
-    src/ops/multinomial_gpu.cu
-    src/ops/rms_norm_gpu.cu
-    src/ops/rotary_gpu.cu
-    src/ops/softmax_gpu.cu
-    src/ops/tile_gpu.cu
-    src/ops/topk_gpu.cu
-    src/ops/topp_mask_gpu.cu
-    src/ops/quantize_gpu.cu
-    src/ops/nccl_ops_gpu.cu
     src/ops/flash-attention/flash_fwd_hdim32_bf16_sm80.cu
     src/ops/flash-attention/flash_fwd_hdim32_fp16_sm80.cu
     src/ops/flash-attention/flash_fwd_hdim64_bf16_sm80.cu
@@ -600,6 +590,41 @@ if (WITH_CUDA)
     src/ops/flash-attention/flash_fwd_split_hdim256_bf16_sm80.cu
     src/ops/flash-attention/flash_fwd_split_hdim256_fp16_sm80.cu
   )
+
+  set(CUDA_SOURCES
+    ${SOURCES}
+    src/cuda/allocator.cc
+    src/cuda/primitives.cu
+    src/cuda/random.cu
+    src/cuda/utils.cc
+    src/ops/alibi_add_gpu.cu
+    src/ops/bias_add_gpu.cu
+    src/ops/concat_split_slide_gpu.cu
+    src/ops/conv1d_gpu.cu
+    src/ops/conv2d_gpu.cu
+    src/ops/dequantize_gpu.cu
+    src/ops/gather_gpu.cu
+    src/ops/gumbel_max_gpu.cu
+    src/ops/layer_norm_gpu.cu
+    src/ops/mean_gpu.cu
+    src/ops/multinomial_gpu.cu
+    src/ops/rms_norm_gpu.cu
+    src/ops/rotary_gpu.cu
+    src/ops/softmax_gpu.cu
+    src/ops/tile_gpu.cu
+    src/ops/topk_gpu.cu
+    src/ops/topp_mask_gpu.cu
+    src/ops/quantize_gpu.cu
+    src/ops/nccl_ops_gpu.cu
+  )
+  if(WITH_FLASHATTENTION)
+    list(APPEND CUDA_SOURCES ${FLASH_ATTENTION_KERNEL_SOURCES})
+  endif()
+    
+  cuda_add_library(${PROJECT_NAME}
+    ${CUDA_SOURCES}
+  )
+
 elseif(WITH_CUDNN)
   message(FATAL_ERROR "WITH_CUDNN=ON requires WITH_CUDA=ON")
 else()
