@@ -20,12 +20,3 @@ install(
   TARGETS translator
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
-
-add_executable(prostt5
-  prostt5.cc)
-target_include_directories(prostt5
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include)
-target_link_libraries(prostt5 PRIVATE ${PROJECT_NAME})
-install(
-  TARGETS prostt5
-  DESTINATION ${CMAKE_INSTALL_BINDIR})

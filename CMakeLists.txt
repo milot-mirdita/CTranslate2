@@ -22,6 +22,7 @@ option(BUILD_CLI "Compile the clients" ON)
 option(BUILD_TESTS "Compile the tests" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(WITH_TENSOR_PARALLEL "Compile with NCCL and MPI backend" OFF)
+option(BUILD_PROSTT5 "Compile with ProstT5" OFF)
 
 if(ENABLE_PROFILING)
   message(STATUS "Enable profiling support")
@@ -661,6 +662,10 @@ include(GNUInstallDirs)
 if (BUILD_CLI)
   add_subdirectory(cli)
 endif()
+
+if (BUILD_PROSTT5)
+  add_subdirectory(prostt5)
+endif ()
 
 install(
   TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
