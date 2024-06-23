@@ -6,6 +6,7 @@
 #include "ctranslate2/encoding.h"
 #include "ctranslate2/generation.h"
 #include "ctranslate2/scoring.h"
+#include "ctranslate2/layers/prostt5cnn.h"
 
 namespace ctranslate2 {
   namespace models {
@@ -159,6 +160,7 @@ namespace ctranslate2 {
       const std::unique_ptr<layers::Encoder> _encoder;
       const ops::ActivationType _pooler_activation;
       const std::unique_ptr<layers::Dense> _pooler_dense;
+      const layers::ProstT5CNN _cnn;
     };
 
   }

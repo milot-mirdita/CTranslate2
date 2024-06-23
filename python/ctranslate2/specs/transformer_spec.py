@@ -640,6 +640,10 @@ class TransformerEncoderModelSpec(model_spec.LanguageModelSpec):
             "multi_query_attention", self.encoder.multi_query_attention
         )
 
+        # don't name conv1/2 or else model.cc will try to reshape
+        self.cnv1 = common_spec.LinearSpec()
+        self.cnv2 = common_spec.LinearSpec()
+
         if pooling_layer:
             self.pooler_dense = common_spec.LinearSpec()
             self.pooler_activation = np.dtype("int8").type(pooling_activation)

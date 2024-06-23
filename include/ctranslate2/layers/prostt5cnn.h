@@ -9,9 +9,15 @@
 
 namespace ctranslate2 {
   namespace layers {
-
     class ProstT5CNN : public Layer {
     public:
+      ProstT5CNN(const models::Model& model) :
+        ProstT5CNN(
+          model.get_variable("cnv1/weight"),
+          model.get_variable("cnv1/bias"),
+          model.get_variable("cnv2/weight"),
+          model.get_variable("cnv2/bias")
+        ) {}
       ProstT5CNN(const StorageView& conv0, const StorageView& bias0,
                  const StorageView& conv1, const StorageView& bias1);
       void operator()(const StorageView& input, StorageView& output) const;

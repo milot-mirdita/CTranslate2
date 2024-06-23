@@ -4,4 +4,4 @@ try:
 except Exception as e:
     print(f"Failed to load converter: {e}")
 
-converter.convert("ProstT5_ct2_fp16")
+converter.convert("ProstT5_ct2_fp16", force=True)

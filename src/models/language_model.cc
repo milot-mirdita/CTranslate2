@@ -344,6 +344,7 @@ namespace ctranslate2 {
       , _pooler_dense(layers::build_optional_layer<layers::Dense>(*model,
                                                                   "pooler_dense",
                                                                   &_pooler_activation))
+      , _cnn(*model)
     {
     }
 
@@ -377,8 +378,11 @@ namespace ctranslate2 {
         }
       }
 
+      StorageView ys(dtype, device);
+      (*_encoder)(inputs, lengths, ys);
+
       StorageView last_hidden_state(dtype, device);
-      (*_encoder)(inputs, lengths, last_hidden_state);
+      (_cnn)(ys, last_hidden_state);
 
       EncoderForwardOutput output;
       output.last_hidden_state = std::move(last_hidden_state);

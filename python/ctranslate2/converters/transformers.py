@@ -1162,6 +1162,25 @@ class T5EncoderLoader(T5Loader):
 
         self.set_stack(spec.encoder, model.encoder)
 
+        state = torch.load("model.pt", map_location=torch.device('cpu'))
+        def lookup(name):
+            for k, v in state["state_dict"].items():
+                if k == name:
+                    return v
+            return None
+        weight1 = lookup("classifier.0.weight")
+        weight1 = weight1.reshape((32, 1024, 7, 1))
+        bias1 = lookup("classifier.0.bias")
+        bias1 = bias1.reshape((1, 32, 1, 1))
+        weight2 = lookup("classifier.3.weight")
+        weight2 = weight2.reshape((20, 32, 7, 1))
+        bias2 = lookup("classifier.3.bias")
+        bias2 = bias2.reshape((1, 20, 1, 1))
+        spec.cnv1.weight = weight1
+        spec.cnv1.bias = bias1.numpy()
+        spec.cnv2.weight = weight2
+        spec.cnv2.bias = bias2.numpy()
+
         return spec
     def set_vocabulary(self, spec, tokens):
         spec.register_vocabulary(tokens)
