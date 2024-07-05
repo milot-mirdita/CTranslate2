@@ -2,13 +2,16 @@
 
 #include <mutex>
 
+#ifdef CT2_WITH_SPDLOG
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/spdlog.h>
+#endif
 
 #include "env.h"
 
 namespace ctranslate2 {
 
+#ifdef CT2_WITH_SPDLOG
   static spdlog::level::level_enum to_spdlog_level(const LogLevel level) {
     switch (level) {
     case LogLevel::Off:
@@ -80,5 +83,20 @@ namespace ctranslate2 {
     init_logger();
     return to_ct2_level(spdlog::get_level());
   }
+#else
+  static LogLevel get_default_level() {
+    return LogLevel::Off;
+  }
+
+  void init_logger() {
+  }
+
+  void set_log_level(const LogLevel level) {
+  }
+
+  LogLevel get_log_level() {
+    return LogLevel::Off;
+  }
+#endif
 
 }

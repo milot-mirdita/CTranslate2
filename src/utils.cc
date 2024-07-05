@@ -28,6 +28,7 @@ namespace ctranslate2 {
   void log_system_config() {
     init_logger();
 
+#ifdef CT2_WITH_SPDLOG
     if (!spdlog::should_log(spdlog::level::info))
       return;
 
@@ -67,6 +68,7 @@ namespace ctranslate2 {
                    cuda::gpu_has_fp16_tensor_cores(i));
       spdlog::info(" - Allow BF16: {}", mayiuse_bfloat16(Device::CUDA, i));
     }
+#endif
 #endif
   }
 
