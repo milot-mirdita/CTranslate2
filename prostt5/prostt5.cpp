@@ -79,7 +79,6 @@ struct ProstT5::Impl {
     Impl(
         const std::string& model_dir,
         const std::string& device_str,
-        const std::string& compute_type_str,
         const std::vector<int>& device_indices,
         size_t inter_threads,
         size_t intra_threads,
@@ -97,10 +96,9 @@ struct ProstT5::Impl {
         }
 
         device = ctranslate2::str_to_device(device_str);
-        compute_type = ctranslate2::str_to_compute_type(compute_type_str);
-        if (device == ctranslate2::Device::CPU && !cpu_compute_type.empty()) {
+        if (device == ctranslate2::Device::CPU) {
             compute_type = ctranslate2::str_to_compute_type(cpu_compute_type);
-        } else if (device == ctranslate2::Device::CUDA && !cuda_compute_type.empty()) {
+        } else if (device == ctranslate2::Device::CUDA) {
             compute_type = ctranslate2::str_to_compute_type(cuda_compute_type);
         }
 
@@ -124,7 +122,6 @@ struct ProstT5::Impl {
 ProstT5::ProstT5(
     const std::string& model_dir,
     const std::string& device_str,
-    const std::string& compute_type_str,
     const std::vector<int>& device_indices,
     size_t inter_threads,
     size_t intra_threads,
@@ -136,7 +133,6 @@ ProstT5::ProstT5(
 ) : pimpl(std::make_unique<Impl>(
     model_dir,
     device_str,
-    compute_type_str,
     device_indices,
     inter_threads,
     intra_threads,

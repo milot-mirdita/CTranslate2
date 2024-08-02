@@ -1,7 +1,7 @@
 add_library(
-  prostt5
-  prostt5.h
-  prostt5.cpp
+  prostt5 STATIC
+    prostt5.h
+    prostt5.cpp
 )
 target_link_libraries(prostt5 PRIVATE ${PROJECT_NAME})
 

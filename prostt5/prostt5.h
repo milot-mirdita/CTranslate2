@@ -10,7 +10,6 @@ public:
     ProstT5(
         const std::string& model_dir,
         const std::string& device_str,
-        const std::string& compute_type_str,
         const std::vector<int>& device_indices,
         size_t inter_threads,
         size_t intra_threads,
